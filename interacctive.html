@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Interactive Solar System</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+        }
+        canvas { 
+            display: block; 
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script>
+    let scene, camera, renderer, controls;
+    let sun, planets = {};
+
+    function generateStarfield() {
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 4000;
+        const starPositions = [];
+
+        for (let i = 0; i < starCount; i++) {
+            starPositions.push(
+                (Math.random() - 0.5) * 5000,
+                (Math.random() - 0.5) * 5000,
+                (Math.random() - 0.5) * 5000
+            );
+        }
+
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+    }
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 30, 100);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        generateStarfield();
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 2, 500);
+        pointLight.position.set(0, 0, 0);
+        scene.add(pointLight);
+
+        const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        scene.add(sun);
+
+        const sunGlow = new THREE.Mesh(
+            new THREE.SphereGeometry(6, 32, 32), 
+            new THREE.MeshBasicMaterial({ color: 0xff0080, transparent: true, opacity: 0.5 })
+        );
+        scene.add(sunGlow);
+
+        const planetData = {
+            mercury: { radius: 1, distance: 8, speed: 0.04, color: 0xaaaaaa },
+            venus: { radius: 1.5, distance: 12, speed: 0.03, color: 0xffcc66 },
+            earth: { radius: 2, distance: 16, speed: 0.02, color: 0x3366ff },
+            mars: { radius: 1.8, distance: 20, speed: 0.015, color: 0xff4422 },
+            jupiter: { radius: 4, distance: 28, speed: 0.008, color: 0xffa500 },
+            saturn: { radius: 3.5, distance: 36, speed: 0.007, color: 0xf7c272 },
+            uranus: { radius: 3, distance: 42, speed: 0.006, color: 0x7fffd4 },
+            neptune: { radius: 3, distance: 50, speed: 0.005, color: 0x4682b4 }
+        };
+
+        Object.entries(planetData).forEach(([name, data]) => {
+            const planetGeometry = new THREE.SphereGeometry(data.radius, 32, 32);
+            const planetMaterial = new THREE.MeshStandardMaterial({ color: data.color });
+
+            const planet = new THREE.Mesh(planetGeometry, planetMaterial);
+            planet.position.x = data.distance;
+
+            const orbitGroup = new THREE.Group();
+            orbitGroup.add(planet);
+            scene.add(orbitGroup);
+
+            planets[name] = { mesh: planet, orbit: orbitGroup, data: data };
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        sun.rotation.y += 0.001;
+
+        Object.values(planets).forEach(planet => {
+            planet.mesh.rotation.y += 0.01;
+            planet.orbit.rotation.y += planet.data.speed;
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    init();
+    animate();
+</script>
+
+</body>
+</html>
